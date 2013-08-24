@@ -6,10 +6,10 @@ setup(
     packages=find_packages(),
     install_requires=[
         'httplib2==0.7.2',
-        "maker-py==0.1.2"
+        "maker_py==0.1.2"
     ],
     dependency_links=[
-        "https://github.com/objectlabs/maker-py/archive/master.zip#egg=maker-py-0.1.2"
+        "https://github.com/objectlabs/maker-py/archive/master.zip#egg=maker_py-0.1.2"
     ]
 
 
