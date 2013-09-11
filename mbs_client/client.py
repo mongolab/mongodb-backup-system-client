@@ -57,12 +57,18 @@ class BackupSystemClient(object):
 
     ###########################################################################
     def get_backup_database_names(self, backup_id):
-        return self._execute_command("get-backup-database-names?backupId=%s" %
-                                     backup_id)
+        params = {
+            "backupId": backup_id
+        }
+        return self._execute_command("get-backup-database-names",
+                                     params=params)
 
     ###########################################################################
     def delete_backup(self, backup_id):
-        return self._execute_command("delete-backup?backupId=%s" % backup_id)
+        params = {
+            "backupId": backup_id
+        }
+        return self._execute_command("delete-backup", params=params)
 
     ###########################################################################
     def restore_backup(self, backup_id, destination_uri,
@@ -105,8 +111,12 @@ class BackupSystemClient(object):
 
         if params:
             url += "?"
-            for name,val in params.items():
+            count = 0
+            for name, val in params.items():
+                if count > 0:
+                    url += "&"
                 url += "%s=%s" % (name, val)
+                count += 1
         return url
 
     ###########################################################################
