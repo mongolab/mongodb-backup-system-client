@@ -6,7 +6,7 @@ from netutils import fetch_url_json
 from errors import BackupSystemClientError
 from utils import resolve_path, read_config_json
 from makerpy.maker import Maker
-
+import traceback
 ###############################################################################
 # CONSTANTS
 ###############################################################################
@@ -48,7 +48,8 @@ class BackupSystemClient(object):
                 "status": BACKUP_SYSTEM_STATUS_STOPPED
             }
         except Exception, e:
-            msg = "Error while trying to get backup system status: %s" % e
+            msg = ("Error while trying to get backup system status. "
+                   "Cause: %s. %s" % (e, traceback.format_exc()))
             raise BackupSystemClientError(msg)
 
     ###########################################################################
