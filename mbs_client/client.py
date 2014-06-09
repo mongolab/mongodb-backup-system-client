@@ -3,7 +3,7 @@ __author__ = 'abdul'
 import os
 
 from netutils import fetch_url_json
-from errors import BackupSystemClientError
+from errors import MBSClientError
 from utils import resolve_path, read_config_json
 from makerpy.maker import Maker
 import traceback
@@ -12,30 +12,35 @@ import traceback
 ###############################################################################
 DEFAULT_BS_URL = "http://localhost:9003"
 
-BACKUP_SYSTEM_STATUS_RUNNING = "running"
-BACKUP_SYSTEM_STATUS_STOPPING = "stopping"
-BACKUP_SYSTEM_STATUS_STOPPED = "stopped"
+DEFAULT_ENGINE_URL = "http://localhost:8888"
 
 ###############################################################################
-# BackupSystemClient
+class Status(object):
+    RUNNING = "running"
+    STOPPING = "stopping"
+    STOPPED = "stopped"
+
+
+###############################################################################
+# Generic MBS Client
 ###############################################################################
 
 
-class BackupSystemClient(object):
+class MBSClient(object):
 
     ###########################################################################
-    def __init__(self, backup_system_url=None):
-        self._url = backup_system_url or DEFAULT_BS_URL
+    def __init__(self, api_url):
+        self._api_url = api_url
 
 
     @property
-    def backup_system_url(self):
-        return self._url
+    def api_url(self):
+        return self._api_url
 
     ###########################################################################
-    @backup_system_url.setter
-    def backup_system_url(self, url):
-        self._url = url
+    @api_url.setter
+    def api_url(self, url):
+        self._api_url = url
 
     ###########################################################################
     # CLIENT METHODS
@@ -45,24 +50,29 @@ class BackupSystemClient(object):
             return self._execute_command("status")
         except IOError:
             return {
-                "status": BACKUP_SYSTEM_STATUS_STOPPED
+                "status": Status.STOPPED
             }
+        except ValueError, ve:
+            return {
+                "status": "UNKNOWN",
+                "error": str(ve)
+            }
+        except Exception, e:
+            msg = ("Error while trying to get status. "
+                   "Cause: %s. %s" % (e, traceback.format_exc()))
+            raise MBSClientError(msg)
+
+    ###########################################################################
+    def stop_command(self):
+        try:
+            self._execute_command("stop")
+        except ValueError, ve:
+            pass
         except Exception, e:
             msg = ("Error while trying to get backup system status. "
                    "Cause: %s. %s" % (e, traceback.format_exc()))
-            raise BackupSystemClientError(msg)
+            raise MBSClientError(msg)
 
-    ###########################################################################
-    def stop_backup_system(self):
-        return self._execute_command("stop")
-
-    ###########################################################################
-    def get_backup_database_names(self, backup_id):
-        params = {
-            "backupId": backup_id
-        }
-        return self._execute_command("get-backup-database-names",
-                                     params=params)
 
     ###########################################################################
     def delete_backup(self, backup_id):
@@ -105,7 +115,7 @@ class BackupSystemClient(object):
 
     ###########################################################################
     def _command_url(self, command, params=None):
-        url = self._url
+        url = self.api_url
         if not url.endswith("/"):
             url += "/"
         url += command
@@ -120,7 +130,84 @@ class BackupSystemClient(object):
                 count += 1
         return url
 
+###############################################################################
+# BackupSystemClient
+###############################################################################
+
+
+class BackupSystemClient(MBSClient):
+
     ###########################################################################
+    def __init__(self, api_url=None):
+        url = api_url or DEFAULT_BS_URL
+        MBSClient.__init__(self, api_url=url)
+
+    ###########################################################################
+    # Backup system client methods
+    ###########################################################################
+
+    def get_backup_database_names(self, backup_id):
+        params = {
+            "backupId": backup_id
+        }
+        return self._execute_command("get-backup-database-names",
+                                     params=params)
+
+    ###########################################################################
+    def delete_backup(self, backup_id):
+        params = {
+            "backupId": backup_id
+        }
+        return self._execute_command("delete-backup", params=params)
+
+    ###########################################################################
+    def restore_backup(self, backup_id, destination_uri,
+                       source_database_name=None, tags=None):
+        data = {
+            "backupId": backup_id,
+            "destinationUri": destination_uri
+        }
+
+        if source_database_name:
+            data["sourceDatabaseName"] = source_database_name
+        if tags:
+            data["tags"] = tags
+
+        return self._execute_command("restore-backup", method="POST",
+                                     data=data)
+
+    ###########################################################################
+    def get_destination_restore_status(self, destination_uri):
+        params = {
+            "destinationUri": destination_uri
+        }
+
+        return self._execute_command("get-destination-restore-status",
+                                     method="GET", params=params)
+
+
+###############################################################################
+# BackupEngineClient
+###############################################################################
+
+
+class BackupEngineClient(MBSClient):
+
+    ###########################################################################
+    def __init__(self, api_url=None):
+        url = api_url or DEFAULT_ENGINE_URL
+        MBSClient.__init__(self, api_url=url)
+
+    ###########################################################################
+    # Backup system client methods
+    ###########################################################################
+
+    def cancel_backup(self, backup_id):
+        params = {
+            "backupId": backup_id
+        }
+        return self._execute_command("cancel-backup",
+                                     params=params, method="POST")
 
 
 ###############################################################################

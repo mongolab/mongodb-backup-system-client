@@ -2,7 +2,7 @@ __author__ = 'abdul'
 
 
 ###############################################################################
-# BackupSystemClientError
+# MBSClientError
 ###############################################################################
-class BackupSystemClientError(Exception):
+class MBSClientError(Exception):
     pass
