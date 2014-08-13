@@ -5,7 +5,7 @@ setup(
     version='0.2.2',
     packages=find_packages(),
     install_requires=[
-        'httplib2==0.7.2',
+        'httplib2>=0.9',
         "makerpy>=0.1.5",
         "robustify>=0.1.0"
     ],
