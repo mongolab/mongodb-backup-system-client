@@ -201,7 +201,6 @@ class BackupEngineClient(MBSClient):
     ###########################################################################
     # Backup system client methods
     ###########################################################################
-
     def cancel_backup(self, backup_id):
         params = {
             "backupId": backup_id
@@ -209,6 +208,13 @@ class BackupEngineClient(MBSClient):
         return self._execute_command("cancel-backup",
                                      params=params, method="POST")
 
+    ###########################################################################
+    def cancel_restore(self, restore_id):
+        params = {
+            "restoreId": restore_id
+        }
+        return self._execute_command("restore-backup",
+                                     params=params, method="POST")
 
 ###############################################################################
 # configuration and global access
