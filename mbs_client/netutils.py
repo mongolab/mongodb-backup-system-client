@@ -38,11 +38,24 @@ def fetch_url(url, method=None, data=None, headers=None, timeout=None, retries=N
             if retries < 0:
                 raise
     if _response is None or "status" not in _response:
-        raise Exception("Error: Response is empty: %s" % _content)
+        raise FetchUrlError("Error: Response is empty: %s" % _content)
     if _response["status"] != "200":
-        raise Exception("Error (%s): %s" % (_response["status"], _content))
+        raise FetchUrlError("Error (%s): %s" % (_response["status"], _content),
+                            status_code=int(_response["status"]))
     if _content:
         return _content
     else:
         return True
+
+
+
+
+class FetchUrlError(Exception):
+    def __init__(self, msg, status_code=None):
+        Exception.__init__(self, msg)
+        self._status_code = status_code
+
+    @property
+    def status_code(self):
+        return self._status_code
 
