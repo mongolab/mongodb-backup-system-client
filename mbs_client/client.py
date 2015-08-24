@@ -220,16 +220,22 @@ class BackupEngineClient(MBSClient):
 # configuration and global access
 ###############################################################################
 
+__backup_system_client__ = None
+
 def backup_system_client():
-    maker = Maker()
-    conf = _get_client_config()
-    if conf:
-        return maker.make(conf)
-    else:
-        return BackupSystemClient()
+    global __backup_system_client__
+
+    if __backup_system_client__ is None:
+        maker = Maker()
+        conf = _get_client_config()
+        __backup_system_client__ = maker.make(conf)
+
+    return __backup_system_client__
 
 ###############################################################################
 def _get_client_config():
     conf_path = resolve_path(os.path.join("~/.mbs", "mbs-api-client.config"))
     if os.path.exists(conf_path):
         return read_config_json("mbs-api-client", conf_path)
+    else:
+        raise Exception("mbs api client conf %s does not exist")
