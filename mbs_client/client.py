@@ -82,22 +82,6 @@ class MBSClient(object):
         return self._execute_command("delete-backup", params=params)
 
     ###########################################################################
-    def restore_backup(self, backup_id, destination_uri,
-                       source_database_name=None, tags=None):
-        data = {
-            "backupId": backup_id,
-            "destinationUri": destination_uri
-        }
-
-        if source_database_name:
-            data["sourceDatabaseName"] = source_database_name
-        if tags:
-            data["tags"] = tags
-
-        return self._execute_command("restore-backup", method="POST",
-                                     data=data)
-
-    ###########################################################################
     def get_destination_restore_status(self, destination_uri):
         params = {
             "destinationUri": destination_uri
@@ -162,7 +146,8 @@ class BackupSystemClient(MBSClient):
 
     ###########################################################################
     def restore_backup(self, backup_id, destination_uri,
-                       source_database_name=None, tags=None):
+                       source_database_name=None, tags=None,
+                       no_index_restore=None, no_users_restore=None, no_roles_restore=None):
         data = {
             "backupId": backup_id,
             "destinationUri": destination_uri
@@ -173,6 +158,14 @@ class BackupSystemClient(MBSClient):
         if tags:
             data["tags"] = tags
 
+        if no_index_restore:
+            data["noIndexRestore"] = no_index_restore
+
+        if no_users_restore:
+            data["noUsersRestore"] = no_users_restore
+
+        if no_roles_restore:
+            data["noRolesRestore"] = no_roles_restore
         return self._execute_command("restore-backup", method="POST",
                                      data=data)
 
