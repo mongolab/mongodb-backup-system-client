@@ -74,21 +74,7 @@ class MBSClient(object):
             raise MBSClientError(msg)
 
 
-    ###########################################################################
-    def delete_backup(self, backup_id):
-        params = {
-            "backupId": backup_id
-        }
-        return self._execute_command("delete-backup", params=params)
 
-    ###########################################################################
-    def get_destination_restore_status(self, destination_uri):
-        params = {
-            "destinationUri": destination_uri
-        }
-
-        return self._execute_command("get-destination-restore-status",
-                                     method="GET", params=params)
 
     ###########################################################################
     # HELPERS
