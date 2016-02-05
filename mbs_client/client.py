@@ -14,6 +14,8 @@ DEFAULT_BS_URL = "http://localhost:9003"
 
 DEFAULT_ENGINE_URL = "http://localhost:8888"
 
+DEFAULT_TIMEOUT = 10 * 60 # 10 minutes
+
 ###############################################################################
 class Status(object):
     RUNNING = "running"
@@ -31,16 +33,25 @@ class MBSClient(object):
     ###########################################################################
     def __init__(self, api_url):
         self._api_url = api_url
+        self._timeout = DEFAULT_TIMEOUT
 
-
+    ###########################################################################
     @property
     def api_url(self):
         return self._api_url
 
-    ###########################################################################
     @api_url.setter
     def api_url(self, url):
         self._api_url = url
+
+    ###########################################################################
+    @property
+    def timeout(self):
+        return self._timeout
+
+    @timeout.setter
+    def timeout(self, t):
+        self._timeout = t
 
     ###########################################################################
     # CLIENT METHODS
@@ -81,7 +92,7 @@ class MBSClient(object):
     ###########################################################################
     def _execute_command(self, command, params=None, data=None, method=None):
         url = self._command_url(command, params=params)
-        return fetch_url_json(url=url, method=method, data=data)
+        return fetch_url_json(url=url, method=method, data=data, timeout=self.timeout)
 
     ###########################################################################
     def _command_url(self, command, params=None):
