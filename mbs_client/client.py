@@ -6,7 +6,15 @@ from errors import MBSClientError
 from utils import resolve_path, read_config_json
 from makerpy.maker import Maker
 import traceback
-from carbonio_client.client import CarbonIOClient
+from carbonio_client.client import CarbonIOClient, HTTPError
+import time
+import logging
+
+###############################################################################
+# LOGGER
+logger = logging.getLogger(__name__)
+logger.addHandler(logging.NullHandler())
+
 ###############################################################################
 # CONSTANTS
 ###############################################################################
@@ -88,9 +96,34 @@ class MBSClient(object):
             raise MBSClientError(msg)
 
     ####################################################################################################################
-    def request_endpoint(self, method, endpoint, *args, **kwargs):
-        method_func = getattr(self.carbon_client.get_endpoint(endpoint), method)
-        return method_func(*args, **kwargs).json()
+    def request_endpoint(self, method_name, endpoint, *args, **kwargs):
+        endpoint_obj = self.carbon_client.get_endpoint(endpoint)
+        method_func = getattr(endpoint_obj, method_name)
+
+        logger.info("mbs api %s %s: BEGIN REQUEST" % (method_name.upper(), endpoint_obj.full_url))
+        start_time = time.time()
+
+        try:
+            response = method_func(*args, **kwargs)
+            logger.info("mbs api %s %s: RESPONSE requestId '%s', mbs-api-sever '%s'" %
+                        (method_name.upper(),
+                         endpoint_obj.full_url,
+                         response.headers.get("request-id") or "NONE",
+                         response.headers.get("mbs-api-server")))
+            return response.json()
+        except Exception, ex:
+            if isinstance(ex, HTTPError):
+                logger.info("mbs api %s %s: RESPONSE requestId '%s', mbs-api-sever '%s'" %
+                            (method_name.upper(),
+                             endpoint_obj.full_url,
+                             ex.response.headers.get("request-id") or "NONE",
+                             ex.response.headers.get("mbs-api-server")))
+            raise
+        finally:
+            elapsed = time.time() - start_time
+            logger.info("mbs api %s %s: END REQUEST. finished in %.3f seconds" % (method_name.upper(),
+                                                                                  endpoint_obj.full_url, elapsed))
+
 
 
 ########################################################################################################################
