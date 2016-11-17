@@ -61,7 +61,7 @@ class MBSClient(object):
     ###########################################################################
     def get_status(self):
         try:
-            return self.carbon_client.get_endpoint("status").get()
+            return self.request_endpoint("get", "status")
         except IOError:
             return {
                 "status": Status.STOPPED
@@ -79,13 +79,18 @@ class MBSClient(object):
     ###########################################################################
     def stop_command(self):
         try:
-            self.carbon_client.get_endpoint("stop").get()
+            return self.request_endpoint("get", "stop" )
         except ValueError, ve:
             pass
         except Exception, e:
             msg = ("Error while trying to get backup system status. "
                    "Cause: %s. %s" % (e, traceback.format_exc()))
             raise MBSClientError(msg)
+
+    ####################################################################################################################
+    def request_endpoint(self, method, endpoint, *args, **kwargs):
+        method_func = getattr(self.carbon_client.get_endpoint(endpoint), method)
+        return method_func(*args, **kwargs).json()
 
 
 ########################################################################################################################
@@ -108,14 +113,14 @@ class BackupSystemClient(MBSClient):
         params = {
             "backupId": backup_id
         }
-        return self.carbon_client.get_endpoint("get-backup-database-names").get(params=params).json()
+        return self.request_endpoint("get", "get-backup-database-names", params=params)
 
     ####################################################################################################################
     def delete_backup(self, backup_id):
         params = {
             "backupId": backup_id
         }
-        return self.carbon_client.get_endpoint("delete-backup").get(params=params).json()
+        return self.request_endpoint("get", "delete-backup", params=params)
 
     ####################################################################################################################
     def restore_backup(self, backup_id, destination_uri,
@@ -140,7 +145,7 @@ class BackupSystemClient(MBSClient):
         if no_roles_restore:
             data["noRolesRestore"] = no_roles_restore
 
-        return self.carbon_client.get_endpoint("restore-backup").post(body=data).json()
+        return self.request_endpoint("post", "restore-backup", body=data)
 
     ####################################################################################################################
     def get_destination_restore_status(self, destination_uri):
@@ -148,7 +153,7 @@ class BackupSystemClient(MBSClient):
             "destinationUri": destination_uri
         }
 
-        return self.carbon_client.get_endpoint("get-destination-restore-status").get(params=params).json()
+        return self.request_endpoint("get", "get-destination-restore-status", params=params)
 
 
 ###############################################################################
@@ -170,14 +175,15 @@ class BackupEngineClient(MBSClient):
         params = {
             "backupId": backup_id
         }
-        return self.carbon_client.get_endpoint("cancel-backup").post({"params": params}).json()
+        return self.request_endpoint("post", "cancel-backup", options={"params": params})
+
 
     ###########################################################################
     def cancel_restore(self, restore_id):
         params = {
             "restoreId": restore_id
         }
-        return self.carbon_client.get_endpoint("restore-backup").post({"params": params}).json()
+        return self.request_endpoint("post", "cancel-restore", options={"params": params})
 
 ###############################################################################
 # configuration and global access
