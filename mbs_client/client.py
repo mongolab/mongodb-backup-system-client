@@ -2,11 +2,11 @@ __author__ = 'abdul'
 
 import os
 
-from netutils import fetch_url_json
 from errors import MBSClientError
 from utils import resolve_path, read_config_json
 from makerpy.maker import Maker
 import traceback
+from carbonio_client.client import CarbonIOClient
 ###############################################################################
 # CONSTANTS
 ###############################################################################
@@ -33,7 +33,19 @@ class MBSClient(object):
     ###########################################################################
     def __init__(self, api_url):
         self._api_url = api_url
-        self._timeout = DEFAULT_TIMEOUT
+        self._client_options = {
+            "timeout": DEFAULT_TIMEOUT
+        }
+
+        self._carbon_client = None
+
+    ###########################################################################
+    @property
+    def carbon_client(self):
+        if self._carbon_client is None:
+            self._carbon_client = CarbonIOClient(self.api_url, options=self._client_options)
+        return self._carbon_client
+
 
     ###########################################################################
     @property
@@ -45,20 +57,11 @@ class MBSClient(object):
         self._api_url = url
 
     ###########################################################################
-    @property
-    def timeout(self):
-        return self._timeout
-
-    @timeout.setter
-    def timeout(self, t):
-        self._timeout = t
-
-    ###########################################################################
     # CLIENT METHODS
     ###########################################################################
     def get_status(self):
         try:
-            return self._execute_command("status")
+            return self.carbon_client.get_endpoint("status").get()
         except IOError:
             return {
                 "status": Status.STOPPED
@@ -76,7 +79,7 @@ class MBSClient(object):
     ###########################################################################
     def stop_command(self):
         try:
-            self._execute_command("stop")
+            self.carbon_client.get_endpoint("stop").get()
         except ValueError, ve:
             pass
         except Exception, e:
@@ -85,63 +88,36 @@ class MBSClient(object):
             raise MBSClientError(msg)
 
 
-
-
-    ###########################################################################
-    # HELPERS
-    ###########################################################################
-    def _execute_command(self, command, params=None, data=None, method=None):
-        url = self._command_url(command, params=params)
-        return fetch_url_json(url=url, method=method, data=data, timeout=self.timeout)
-
-    ###########################################################################
-    def _command_url(self, command, params=None):
-        url = self.api_url
-        if not url.endswith("/"):
-            url += "/"
-        url += command
-
-        if params:
-            url += "?"
-            count = 0
-            for name, val in params.items():
-                if count > 0:
-                    url += "&"
-                url += "%s=%s" % (name, val)
-                count += 1
-        return url
-
-###############################################################################
+########################################################################################################################
 # BackupSystemClient
-###############################################################################
+########################################################################################################################
 
 
 class BackupSystemClient(MBSClient):
 
-    ###########################################################################
+    ####################################################################################################################
     def __init__(self, api_url=None):
         url = api_url or DEFAULT_BS_URL
         MBSClient.__init__(self, api_url=url)
 
-    ###########################################################################
+    ####################################################################################################################
     # Backup system client methods
-    ###########################################################################
+    ####################################################################################################################
 
     def get_backup_database_names(self, backup_id):
         params = {
             "backupId": backup_id
         }
-        return self._execute_command("get-backup-database-names",
-                                     params=params)
+        return self.carbon_client.get_endpoint("get-backup-database-names").get(params=params).json()
 
-    ###########################################################################
+    ####################################################################################################################
     def delete_backup(self, backup_id):
         params = {
             "backupId": backup_id
         }
-        return self._execute_command("delete-backup", params=params)
+        return self.carbon_client.get_endpoint("delete-backup").get(params=params).json()
 
-    ###########################################################################
+    ####################################################################################################################
     def restore_backup(self, backup_id, destination_uri,
                        source_database_name=None, tags=None,
                        no_index_restore=None, no_users_restore=None, no_roles_restore=None):
@@ -163,17 +139,16 @@ class BackupSystemClient(MBSClient):
 
         if no_roles_restore:
             data["noRolesRestore"] = no_roles_restore
-        return self._execute_command("restore-backup", method="POST",
-                                     data=data)
 
-    ###########################################################################
+        return self.carbon_client.get_endpoint("restore-backup").post(body=data).json()
+
+    ####################################################################################################################
     def get_destination_restore_status(self, destination_uri):
         params = {
             "destinationUri": destination_uri
         }
 
-        return self._execute_command("get-destination-restore-status",
-                                     method="GET", params=params)
+        return self.carbon_client.get_endpoint("get-destination-restore-status").get(params=params).json()
 
 
 ###############################################################################
@@ -195,16 +170,14 @@ class BackupEngineClient(MBSClient):
         params = {
             "backupId": backup_id
         }
-        return self._execute_command("cancel-backup",
-                                     params=params, method="POST")
+        return self.carbon_client.get_endpoint("cancel-backup").post({"params": params}).json()
 
     ###########################################################################
     def cancel_restore(self, restore_id):
         params = {
             "restoreId": restore_id
         }
-        return self._execute_command("restore-backup",
-                                     params=params, method="POST")
+        return self.carbon_client.get_endpoint("restore-backup").post({"params": params}).json()
 
 ###############################################################################
 # configuration and global access
