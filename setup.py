@@ -7,7 +7,7 @@ setup(
     install_requires=[
         "makerpy>=0.3.4",
         "robustify>=0.1.0",
-        "carbonio_client==0.2.1"
+        "carbonio_client==0.2.2"
     ],
     dependency_links=[
         "https://github.com/objectlabs/maker-py/archive/0.3.4.zip#egg=makerpy-0.3.4",
